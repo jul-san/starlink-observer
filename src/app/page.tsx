@@ -532,7 +532,16 @@ export default function Page() {
       </div>
 
       {/* Satellite cards row */}
-      <div className="h-44 shrink-0 border-t border-gray-800 bg-gray-950 flex items-center gap-3 px-4 py-3 overflow-x-auto">
+      <div
+        className="h-44 shrink-0 border-t border-gray-800 bg-gray-950 flex items-center gap-3 px-4 py-3 overflow-x-auto"
+        onMouseLeave={() => {
+          // Only reset when leaving the section entirely and no satellite is selected
+          if (!selectedSatRef.current) {
+            controlsRef.current?.reset();
+            autoRotatingRef.current = true;
+          }
+        }}
+      >
         {satCards.length === 0 ? (
           <p className="text-gray-500 text-sm">Loading satellites…</p>
         ) : (
@@ -548,8 +557,6 @@ export default function Page() {
               onMouseLeave={() => {
                 hoveredSatRef.current = null;
                 setHoveredName(null);
-                controlsRef.current?.reset();
-                autoRotatingRef.current = true;
               }}
               className={[
                 "shrink-0 w-44 h-32 rounded-lg border p-3 cursor-pointer",
