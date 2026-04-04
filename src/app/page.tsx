@@ -91,10 +91,12 @@ export default function Page() {
   }
 
   function handleReset() {
-    // reset() restores the camera snapshot TrackballControls saved at creation:
-    // position (0,0,400), up (0,1,0), and target (0,0,0)
     controlsRef.current?.reset();
     autoRotatingRef.current = true;
+    setSelectedSat(null);
+    setLiveData(null);
+    liveDataRef.current = null;
+    selectedSatRef.current = null;
   }
 
   useEffect(() => {
@@ -200,6 +202,28 @@ export default function Page() {
       scene.add(Globe as unknown as THREE.Object3D);
       scene.add(new THREE.AmbientLight(0xcccccc, Math.PI));
       scene.add(new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI));
+
+      // Starfield — random points on a large sphere surrounding the scene
+      const STAR_COUNT = 6000;
+      const starPositions = new Float32Array(STAR_COUNT * 3);
+      for (let i = 0; i < STAR_COUNT; i++) {
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = 900;
+        starPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+        starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+        starPositions[i * 3 + 2] = r * Math.cos(phi);
+      }
+      const starGeo = new THREE.BufferGeometry();
+      starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+      const starMat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1.8,
+        sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.85,
+      });
+      scene.add(new THREE.Points(starGeo, starMat));
 
       // All-satellite point cloud — buffer updated in-place each frame
       const allPositions = new Float32Array(satData.length * 3);
