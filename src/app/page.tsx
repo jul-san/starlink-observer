@@ -3,6 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
+// Version → hex color. Used for both Three.js vertex colors and React UI.
+const VERSION_COLORS: Record<string, string> = {
+  "v0.9":      "#3b82f6", // blue
+  "v1.0":      "#a855f7", // purple
+  "v1.5":      "#f97316", // orange
+  "v2.0 Mini": "#22d3ee", // cyan
+  "v2.0":      "#4ade80", // green
+};
+const DEFAULT_VERSION_COLOR = "#ffffff"; // white for unknown / v?
+
+function getVersionColor(version: string): string {
+  return VERSION_COLORS[version] ?? DEFAULT_VERSION_COLOR;
+}
+
 type SatCard = {
   name: string;
   noradId: string;
@@ -83,6 +97,7 @@ export default function Page() {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [paused, setPaused] = useState(false);
   const [versionFilter, setVersionFilter] = useState("all");
+  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
 
   function handlePauseToggle() {
     const next = !pausedRef.current;
@@ -225,11 +240,20 @@ export default function Page() {
       });
       scene.add(new THREE.Points(starGeo, starMat));
 
-      // All-satellite point cloud — buffer updated in-place each frame
+      // All-satellite point cloud — positions updated in-place each frame,
+      // colors set once at load time based on version.
       const allPositions = new Float32Array(satData.length * 3);
+      const allColors   = new Float32Array(satData.length * 3);
+      satData.forEach((d, i) => {
+        const c = new THREE.Color(getVersionColor(d.version));
+        allColors[i * 3]     = c.r;
+        allColors[i * 3 + 1] = c.g;
+        allColors[i * 3 + 2] = c.b;
+      });
       const allGeo = new THREE.BufferGeometry();
       allGeo.setAttribute("position", new THREE.BufferAttribute(allPositions, 3));
-      const allMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.0, sizeAttenuation: true });
+      allGeo.setAttribute("color",    new THREE.BufferAttribute(allColors, 3));
+      const allMat = new THREE.PointsMaterial({ size: 1.0, sizeAttenuation: true, vertexColors: true });
       const allPoints = new THREE.Points(allGeo, allMat);
       scene.add(allPoints);
 
@@ -547,26 +571,53 @@ export default function Page() {
           ⟳ Reset View
         </button>
 
-        {/* Version filter */}
+        {/* Version filter — custom dropdown with color indicators */}
         {satCards.length > 0 && (
-          <select
-            value={versionFilter}
-            onChange={(e) => {
-              setVersionFilter(e.target.value);
-              versionFilterRef.current = e.target.value;
-            }}
-            className="ml-2 px-3 py-1.5 text-xs rounded border bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:border-gray-500"
-          >
-            <option value="all">All Versions</option>
-            {[...new Set(satCards.map((s) => s.version))]
-              .filter(Boolean)
-              .sort()
-              .map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-          </select>
+          <div className="relative ml-2">
+            <button
+              onClick={() => setVersionDropdownOpen((o) => !o)}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs rounded border bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700 transition-colors"
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: versionFilter === "all" ? "#6b7280" : getVersionColor(versionFilter) }}
+              />
+              {versionFilter === "all" ? "All Versions" : versionFilter || "v?"}
+              <span className="text-gray-500 text-[10px]">▾</span>
+            </button>
+
+            {versionDropdownOpen && (
+              <>
+                {/* Click-away backdrop */}
+                <div className="fixed inset-0 z-40" onClick={() => setVersionDropdownOpen(false)} />
+                <div className="absolute top-full mt-1 left-0 z-50 min-w-[140px] rounded border border-gray-700 bg-gray-900 shadow-xl overflow-hidden">
+                  {/* "All" option */}
+                  <button
+                    onClick={() => { setVersionFilter("all"); versionFilterRef.current = "all"; setVersionDropdownOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 transition-colors"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-gray-500 shrink-0" />
+                    All Versions
+                  </button>
+                  {[...new Set(satCards.map((s) => s.version))]
+                    .sort()
+                    .map((v) => (
+                      <button
+                        key={v || "__unknown__"}
+                        onClick={() => { setVersionFilter(v); versionFilterRef.current = v; setVersionDropdownOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 transition-colors"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: getVersionColor(v) }}
+                        />
+                        {v || "v?"}
+                      </button>
+                    ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </nav>
 
@@ -630,7 +681,14 @@ export default function Page() {
                   NORAD #{sat.noradId}
                 </p>
               </div>
-              <span className="self-start text-xs text-purple-300 bg-purple-900/50 px-2 py-0.5 rounded-full">
+              <span
+                className="self-start text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{
+                  color: getVersionColor(sat.version),
+                  backgroundColor: `${getVersionColor(sat.version)}22`,
+                  border: `1px solid ${getVersionColor(sat.version)}55`,
+                }}
+              >
                 {sat.version || "v?"}
               </span>
             </div>
