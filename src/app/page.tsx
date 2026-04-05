@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 // Version → hex color. Used for both Three.js vertex colors and React UI.
+// Covers all known variant strings returned by the SpaceX API.
 const VERSION_COLORS: Record<string, string> = {
   "v0.9":      "#3b82f6", // blue
   "v1.0":      "#a855f7", // purple
   "v1.5":      "#f97316", // orange
   "v2.0 Mini": "#22d3ee", // cyan
+  "v2 Mini":   "#22d3ee", // cyan  (alternate API label)
   "v2.0":      "#4ade80", // green
+  "v2":        "#4ade80", // green (alternate API label)
 };
 const DEFAULT_VERSION_COLOR = "#ffffff"; // white for unknown / v?
 
@@ -431,6 +434,12 @@ export default function Page() {
     }
   }
 
+  // Count satellites per version for the dropdown labels
+  const versionCounts = satCards.reduce<Record<string, number>>((acc, s) => {
+    acc[s.version] = (acc[s.version] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const detailPanel = selectedSat && (
     <div className="shrink-0 h-64 md:h-auto md:w-96 bg-gray-950 border-t md:border-t-0 md:border-l border-gray-800 flex flex-col overflow-y-auto">
       {/* Header */}
@@ -597,7 +606,8 @@ export default function Page() {
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-200 hover:bg-gray-800 transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-gray-500 shrink-0" />
-                    All Versions
+                    <span className="flex-1 text-left">All Versions</span>
+                    <span className="text-gray-500">{satCards.length}</span>
                   </button>
                   {[...new Set(satCards.map((s) => s.version))]
                     .sort()
@@ -611,7 +621,8 @@ export default function Page() {
                           className="w-2 h-2 rounded-full shrink-0"
                           style={{ backgroundColor: getVersionColor(v) }}
                         />
-                        {v || "v?"}
+                        <span className="flex-1 text-left">{v || "v?"}</span>
+                        <span className="text-gray-500">{versionCounts[v] ?? 0}</span>
                       </button>
                     ))}
                 </div>
