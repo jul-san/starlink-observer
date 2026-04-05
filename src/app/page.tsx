@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
-// Version → hex color. Used for both Three.js vertex colors and React UI.
-// Covers all known variant strings returned by the SpaceX API.
 const VERSION_COLORS: Record<string, string> = {
   "v0.9":      "#3b82f6", // blue
   "v1.0":      "#a855f7", // purple
@@ -89,9 +87,7 @@ export default function Page() {
   const pausedRef = useRef(false);
   const autoRotatingRef = useRef(true);
   const versionFilterRef = useRef<string>("all");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
   const [satCards, setSatCards] = useState<SatCard[]>([]);
@@ -321,7 +317,6 @@ export default function Page() {
         satData.forEach((d, i) => {
           const eci = satellite.propagate(d.satrec, time);
           if (eci?.position) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const geo = satellite.eciToGeodetic(eci.position as any, gmst);
             d.lat = satellite.radiansToDegrees(geo.latitude);
             d.lng = satellite.radiansToDegrees(geo.longitude);
@@ -403,7 +398,6 @@ export default function Page() {
 
       updateFrame();
 
-      // Push live telemetry into React state at ~4 Hz
       const iv = setInterval(() => {
         if (liveDataRef.current) setLiveData({ ...liveDataRef.current });
       }, 250);
@@ -434,7 +428,6 @@ export default function Page() {
     }
   }
 
-  // Count satellites per version for the dropdown labels
   const versionCounts = satCards.reduce<Record<string, number>>((acc, s) => {
     acc[s.version] = (acc[s.version] ?? 0) + 1;
     return acc;
@@ -465,7 +458,7 @@ export default function Page() {
         </button>
       </div>
 
-      {/* Live telemetry */}
+      {/* position */}
       <div className="p-4 border-b border-gray-800">
         <h3 className="text-green-400 text-xs font-semibold uppercase tracking-widest mb-3">
           Position
@@ -513,14 +506,7 @@ export default function Page() {
           <Row label="Period" value={fmt(selectedSat.period, 2, "min")} />
           <Row label="Apoapsis" value={fmt(selectedSat.apoapsis, 0, "km")} />
           <Row label="Periapsis" value={fmt(selectedSat.periapsis, 0, "km")} />
-          <Row
-            label="BSTAR drag"
-            value={
-              isNaN(selectedSat.bstar)
-                ? "—"
-                : selectedSat.bstar.toExponential(4)
-            }
-          />
+          <Row label="BSTAR drag" value={isNaN(selectedSat.bstar) ? "—" : selectedSat.bstar.toExponential(4)} />
         </div>
       </div>
 
@@ -558,7 +544,7 @@ export default function Page() {
       {/* Nav bar */}
       <nav className="shrink-0 flex items-center gap-3 px-4 h-12 bg-gray-950/90 backdrop-blur border-b border-gray-800 z-20">
         <span className="text-white font-bold text-sm tracking-wide mr-2">
-          Starlink Visualizer
+          Starlink Observer
         </span>
 
         <button
